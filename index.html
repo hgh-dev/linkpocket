@@ -28,26 +28,43 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* [Fix] 수평 중앙 정렬 추가 */
+            /* [Fix] 가로 중앙 정렬 복구 */
+            min-height: 100vh;
+            /* height 대신 min-height */
             -webkit-tap-highlight-color: transparent;
-            /* [v1.28.0] 스크롤 고정 (화면 전체 스크롤 방지) */
-            height: 100vh;
-            overflow: hidden;
+            /* flex-direction: column; 제거 혹은 유지? 보통 body는 block이나 flex column */
             flex-direction: column;
         }
 
         .container {
             width: 100%;
             max-width: 600px;
-            /* padding-bottom: 80px; 제거 -> 스크롤 영역으로 이동 */
-            /* display: block; -> flex로 변경 */
             display: flex;
             flex-direction: column;
             position: relative;
-            /* [v1.28.0] 스크롤 고정 (컨테이너 내부 스크롤) */
-            flex: 1;
-            overflow: hidden;
-            min-height: 0;
+            /* flex: 1; overflow: hidden; 제거 */
+            min-height: 100vh;
+            /* 전체 높이 확보 */
+            padding: 5px;
+            /* [User Request] 추가 패딩 */
+        }
+
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.85);
+            /* [Glass] 반투명 배경 */
+            backdrop-filter: blur(10px);
+            /* [Glass] 블러 효과 */
+            -webkit-backdrop-filter: blur(10px);
+            /* [Glass] 사파리 호환 */
+            /* border-bottom 제거됨 */
+            padding-bottom: 0px;
+            padding-top: 15px;
+            /* 상단 여백 보정 */
+            margin-top: -5px;
+            /* body padding 보정 */
         }
 
         /* 상단 유저 정보 (구글 스타일 Refactoring) */
@@ -545,7 +562,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 5px;
             padding: 0 5px;
         }
 
@@ -582,10 +599,7 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
-            min-height: 200px;
-            /* [v1.28.0] 스크롤 영역 (카드 리스트만 스크롤) */
-            flex: 1;
-            overflow-y: auto;
+            /* flex: 1; overflow-y: auto; 제거 */
             padding-bottom: 80px;
             /* 하단 여백 확보 */
         }
@@ -1192,103 +1206,107 @@
     <div id="app-container" class="container">
         <!-- [v1.27.0] 타이틀 바 (프로필 버튼 통합) -->
         <!-- [v1.27.0] 타이틀 바 (프로필 버튼 통합) -->
-        <div class="title-bar">
-            <button id="menuBtn" class="menu-btn">☰</button>
-            <h2>Link Pocket</h2>
+        <div class="sticky-header">
+            <!-- [v1.27.0] 타이틀 바 (프로필 버튼 통합) -->
+            <!-- [v1.27.0] 타이틀 바 (프로필 버튼 통합) -->
+            <div class="title-bar">
+                <button id="menuBtn" class="menu-btn">☰</button>
+                <h2>Link Pocket</h2>
 
-            <!-- 프로필 버튼 영역 -->
-            <div class="header-profile-wrapper" style="position: absolute; right: 0;">
-                <button id="profileBtn" class="profile-btn">
-                    <img id="headerProfileImg"
-                        src="https://ssl.gstatic.com/images/branding/product/1x/avatar_circle_grey_512dp.png"
-                        alt="Profile">
-                </button>
-
-                <!-- 프로필 팝업 메뉴 -->
-                <div id="profilePopup" class="profile-popup">
-                    <div class="popup-header">
-                        <img id="popupProfileImg"
+                <!-- 프로필 버튼 영역 -->
+                <div class="header-profile-wrapper" style="position: absolute; right: 0;">
+                    <button id="profileBtn" class="profile-btn">
+                        <img id="headerProfileImg"
                             src="https://ssl.gstatic.com/images/branding/product/1x/avatar_circle_grey_512dp.png"
-                            class="popup-avatar">
-                        <div class="popup-user-info">
-                            <span id="popupUserName" class="popup-name">Guest</span>
-                            <span id="popupUserEmail" class="popup-email">로그인이 필요합니다</span>
+                            alt="Profile">
+                    </button>
+
+                    <!-- 프로필 팝업 메뉴 -->
+                    <div id="profilePopup" class="profile-popup">
+                        <div class="popup-header">
+                            <img id="popupProfileImg"
+                                src="https://ssl.gstatic.com/images/branding/product/1x/avatar_circle_grey_512dp.png"
+                                class="popup-avatar">
+                            <div class="popup-user-info">
+                                <span id="popupUserName" class="popup-name">Guest</span>
+                                <span id="popupUserEmail" class="popup-email">로그인이 필요합니다</span>
+                            </div>
                         </div>
-                    </div>
-                    <!-- popup-body 제거됨 -->
+                        <!-- popup-body 제거됨 -->
 
-                    <div class="popup-footer">
-                        <button id="popupLoginBtn" class="popup-action-btn login">
-                            로그인
-                        </button>
+                        <div class="popup-footer">
+                            <button id="popupLoginBtn" class="popup-action-btn login">
+                                로그인
+                            </button>
 
-                        <button id="popupAddAccountBtn" class="popup-action-btn" style="display:none;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9.5" cy="7" r="4"></circle>
-                                <line x1="21" y1="8" x2="21" y2="14"></line>
-                                <line x1="24" y1="11" x2="18" y2="11"></line>
-                            </svg>
-                            다른 계정 추가
-                        </button>
+                            <button id="popupAddAccountBtn" class="popup-action-btn" style="display:none;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9.5" cy="7" r="4"></circle>
+                                    <line x1="21" y1="8" x2="21" y2="14"></line>
+                                    <line x1="24" y1="11" x2="18" y2="11"></line>
+                                </svg>
+                                다른 계정 추가
+                            </button>
 
-                        <button id="popupLogoutBtn" class="popup-action-btn" style="display:none;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="M10 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                <polyline points="17 17 22 12 17 7"></polyline>
-                                <line x1="22" y1="12" x2="10" y2="12"></line>
-                            </svg>
-                            모든 계정에서 로그아웃
-                        </button>
+                            <button id="popupLogoutBtn" class="popup-action-btn" style="display:none;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M10 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                    <polyline points="17 17 22 12 17 7"></polyline>
+                                    <line x1="22" y1="12" x2="10" y2="12"></line>
+                                </svg>
+                                모든 계정에서 로그아웃
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="tabs">
-            <button class="tab-btn active" id="tab-all">전체</button>
-            <button class="tab-btn" id="tab-youtube">Youtube</button>
-            <button class="tab-btn" id="tab-music">Music</button>
-            <button class="tab-btn" id="tab-news">News</button>
-            <button class="tab-btn" id="tab-sns">SNS</button>
-            <button class="tab-btn" id="tab-shopping">Shop</button>
-            <button class="tab-btn" id="tab-community">Comm</button>
-            <button class="tab-btn" id="tab-web">Web</button>
-            <button class="tab-btn" id="tab-favorite">★</button>
-            <button class="tab-btn" id="tab-search">🔍</button>
-        </div>
-
-        <div class="input-box" id="addBox">
-            <input type="text" id="linkInput" placeholder="URL을 입력하세요">
-            <button id="addBtn">저장</button>
-        </div>
-
-        <div class="input-box" id="searchBox" style="display: none; border: 2px solid #4285f4;">
-            <span style="font-size: 16px;">🔍</span>
-            <input type="text" id="searchInput" placeholder="찾고 싶은 제목이나 내용을 입력하세요">
-        </div>
-
-        <div class="tools-bar">
-            <!-- 좌측: 정렬 버튼 -->
-            <div class="left-tools">
-                <button id="sortBtn" class="sort-btn">↓ 최신순</button>
+            <div class="tabs">
+                <button class="tab-btn active" id="tab-all">전체</button>
+                <button class="tab-btn" id="tab-youtube">Youtube</button>
+                <button class="tab-btn" id="tab-music">Music</button>
+                <button class="tab-btn" id="tab-news">News</button>
+                <button class="tab-btn" id="tab-sns">SNS</button>
+                <button class="tab-btn" id="tab-shopping">Shop</button>
+                <button class="tab-btn" id="tab-community">Comm</button>
+                <button class="tab-btn" id="tab-web">Web</button>
+                <button class="tab-btn" id="tab-favorite">★</button>
+                <button class="tab-btn" id="tab-search">🔍</button>
             </div>
 
-            <!-- 우측: 선택 버튼 + 더보기 메뉴 -->
-            <div class="right-tools">
+            <div class="input-box" id="addBox">
+                <input type="text" id="linkInput" placeholder="URL을 입력하세요">
+                <button id="addBtn">저장</button>
+            </div>
 
-                <div style="position: relative;">
-                    <button id="headerMoreBtn" class="more-btn"
-                        style="position:static; width:30px; height:30px;">⋮</button>
-                    <!-- 헤더용 더보기 팝업 -->
-                    <div id="headerMoreMenu" class="more-menu-popup" style="right:0; top:35px; width:140px;">
-                        <button id="selectMenuBtn" class="menu-item">선택하기</button>
-                        <button id="cleanBtn" class="menu-item danger">즐겨찾기 외 삭제</button>
-                        <button id="resetBtn" class="menu-item danger">전체 초기화</button>
+            <div class="input-box" id="searchBox" style="display: none; border: 2px solid #4285f4;">
+                <span style="font-size: 16px;">🔍</span>
+                <input type="text" id="searchInput" placeholder="찾고 싶은 제목이나 내용을 입력하세요">
+            </div>
+
+            <div class="tools-bar">
+                <!-- 좌측: 정렬 버튼 -->
+                <div class="left-tools">
+                    <button id="sortBtn" class="sort-btn">↓ 최신순</button>
+                </div>
+
+                <!-- 우측: 선택 버튼 + 더보기 메뉴 -->
+                <div class="right-tools">
+
+                    <div style="position: relative;">
+                        <button id="headerMoreBtn" class="more-btn"
+                            style="position:static; width:30px; height:30px;">⋮</button>
+                        <!-- 헤더용 더보기 팝업 -->
+                        <div id="headerMoreMenu" class="more-menu-popup" style="right:0; top:35px; width:140px;">
+                            <button id="selectMenuBtn" class="menu-item">선택하기</button>
+                            <button id="cleanBtn" class="menu-item danger">즐겨찾기 외 삭제</button>
+                            <button id="resetBtn" class="menu-item danger">전체 초기화</button>
+                        </div>
                     </div>
                 </div>
             </div>
