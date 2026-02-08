@@ -45,7 +45,7 @@
             /* flex: 1; overflow: hidden; 제거 */
             min-height: 100vh;
             /* 전체 높이 확보 */
-            padding: 5px;
+            padding: 10px;
             /* [User Request] 추가 패딩 */
         }
 
@@ -53,18 +53,17 @@
             position: sticky;
             top: 0;
             z-index: 1000;
-            background-color: rgba(255, 255, 255, 0.85);
-            /* [Glass] 반투명 배경 */
-            backdrop-filter: blur(10px);
-            /* [Glass] 블러 효과 */
-            -webkit-backdrop-filter: blur(10px);
-            /* [Glass] 사파리 호환 */
+            background-color: transparent;
+            /* [Two-Tone] 투명 배경 */
+            /* backdrop-filter 제거 (개별 영역 적용) */
+            /* -webkit-backdrop-filter 제거 */
             /* border-bottom 제거됨 */
-            padding-bottom: 0px;
-            padding-top: 15px;
-            /* 상단 여백 보정 */
+            padding: 0;
+            /* [Two-Tone] 패딩 제거 */
             margin-top: -5px;
             /* body padding 보정 */
+            display: flex;
+            flex-direction: column;
         }
 
         /* 상단 유저 정보 (구글 스타일 Refactoring) */
@@ -224,13 +223,33 @@
 
         /* .popup-action-btn.logout::before 제거됨 */
 
-        /* 타이틀 바 */
         .title-bar {
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            margin: 10px 0 20px 0;
+            background-color: #ffffff;
+            /* [Two-Tone] 상단 흰색 배경 */
+            padding: 10px 15px;
+            /* [Two-Tone] 여백 추가 */
+            margin: 0;
+            /* [Two-Tone] 마진 제거 */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            /* [Two-Tone] 구분감 */
+            z-index: 2;
+        }
+
+        /* [Two-Tone] 하단 컨트롤 영역 스타일 */
+        .controls-area {
+            background-color: rgb(255, 255, 255, 0);
+            /* [Two-Tone] 하단 회색 배경 */
+            padding: 5px 0px 5px 0px;
+            /* [Two-Tone] 여백 정리 */
+            backdrop-filter: blur(0px);
+            /* [Design] 블러 효과 (선택) */
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 0px solid rgba(0, 0, 0, 0.05);
+            z-index: 1;
         }
 
         .menu-btn {
@@ -526,7 +545,7 @@
             background-color: #f8f9fa;
             padding: 4px;
             border-radius: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -580,7 +599,7 @@
         }
 
         .sort-btn {
-            background: none;
+            background: rgba(255, 255, 255);
             border: 1px solid #eee;
             padding: 5px 10px;
             border-radius: 15px;
@@ -594,25 +613,70 @@
             background-color: #f8f9fa;
         }
 
+        /* [v1.28.0] 더보기 버튼 개별 스타일 (흰색 원형) */
+        #headerMoreBtn {
+            background-color: #ffffff;
+            border: 1px solid #eee;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            /* flex로 유지하되 부모 요소 확인 필요 */
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            /* 위치 보정 */
+            top: auto;
+            /* [Bugfix] .more-btn의 top 속성 초기화 */
+            right: auto;
+            /* [Bugfix] .more-btn의 right 속성 초기화 */
+            margin: 0;
+            /* [Bugfix] 여백 초기화 */
+            margin-left: 5px;
+            /* 간격 확보 */
+            flex-shrink: 0;
+            /* 줄어들지 않도록 설정 */
+            color: #adb5bd;
+            /* 기존 아이콘 색상 유지 */
+            font-size: 20px;
+            /* 기존 폰트 크기 유지 */
+        }
+
+        #headerMoreBtn:hover {
+            color: #333;
+            background-color: #f9f9f9;
+        }
+
         /* 카드 스타일 */
         .link-list {
             display: flex;
             flex-direction: column;
             gap: 15px;
             /* flex: 1; overflow-y: auto; 제거 */
+            padding: 15px;
+            /* [Design] 내부 여백 추가 */
             padding-bottom: 80px;
-            /* 하단 여백 확보 */
+            /* 하단 여백 유지 */
+            background-color: #f8f9fa;
+            /* [Design] 배경색 추가 */
+            border-radius: 8px;
+            /* [Design] 리스트 모서리 둥글게 (선택 사항) */
         }
 
         .card {
             background: white;
-            border: 1px solid #e1e1e1;
+            border: 1px solid #eff2f5;
+            /* [Design] 테두리 색상 변경 */
             border-radius: 8px;
             position: relative;
             transition: 0.2s;
             -webkit-user-select: none;
             user-select: none;
             z-index: 1;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            /* [Design] 그림자 추가 */
         }
 
         .card:hover {
@@ -1266,46 +1330,47 @@
                 </div>
             </div>
 
-            <div class="tabs">
-                <button class="tab-btn active" id="tab-all">전체</button>
-                <button class="tab-btn" id="tab-youtube">Youtube</button>
-                <button class="tab-btn" id="tab-music">Music</button>
-                <button class="tab-btn" id="tab-news">News</button>
-                <button class="tab-btn" id="tab-sns">SNS</button>
-                <button class="tab-btn" id="tab-shopping">Shop</button>
-                <button class="tab-btn" id="tab-community">Comm</button>
-                <button class="tab-btn" id="tab-web">Web</button>
-                <button class="tab-btn" id="tab-favorite">★</button>
-                <button class="tab-btn" id="tab-search">🔍</button>
-            </div>
-
-            <div class="input-box" id="addBox">
-                <input type="text" id="linkInput" placeholder="URL을 입력하세요">
-                <button id="addBtn">저장</button>
-            </div>
-
-            <div class="input-box" id="searchBox" style="display: none; border: 2px solid #4285f4;">
-                <span style="font-size: 16px;">🔍</span>
-                <input type="text" id="searchInput" placeholder="찾고 싶은 제목이나 내용을 입력하세요">
-            </div>
-
-            <div class="tools-bar">
-                <!-- 좌측: 정렬 버튼 -->
-                <div class="left-tools">
-                    <button id="sortBtn" class="sort-btn">↓ 최신순</button>
+            <div class="controls-area">
+                <div class="tabs">
+                    <button class="tab-btn active" id="tab-all">전체</button>
+                    <button class="tab-btn" id="tab-youtube">Youtube</button>
+                    <button class="tab-btn" id="tab-music">Music</button>
+                    <button class="tab-btn" id="tab-news">News</button>
+                    <button class="tab-btn" id="tab-sns">SNS</button>
+                    <button class="tab-btn" id="tab-shopping">Shop</button>
+                    <button class="tab-btn" id="tab-community">Comm</button>
+                    <button class="tab-btn" id="tab-web">Web</button>
+                    <button class="tab-btn" id="tab-favorite">★</button>
+                    <button class="tab-btn" id="tab-search">🔍</button>
                 </div>
 
-                <!-- 우측: 선택 버튼 + 더보기 메뉴 -->
-                <div class="right-tools">
+                <div class="input-box" id="addBox">
+                    <input type="text" id="linkInput" placeholder="URL을 입력하세요">
+                    <button id="addBtn">저장</button>
+                </div>
 
-                    <div style="position: relative;">
-                        <button id="headerMoreBtn" class="more-btn"
-                            style="position:static; width:30px; height:30px;">⋮</button>
-                        <!-- 헤더용 더보기 팝업 -->
-                        <div id="headerMoreMenu" class="more-menu-popup" style="right:0; top:35px; width:140px;">
-                            <button id="selectMenuBtn" class="menu-item">선택하기</button>
-                            <button id="cleanBtn" class="menu-item danger">즐겨찾기 외 삭제</button>
-                            <button id="resetBtn" class="menu-item danger">전체 초기화</button>
+                <div class="input-box" id="searchBox" style="display: none; border: 2px solid #4285f4;">
+                    <span style="font-size: 16px;">🔍</span>
+                    <input type="text" id="searchInput" placeholder="찾고 싶은 제목이나 내용을 입력하세요">
+                </div>
+
+                <div class="tools-bar">
+                    <!-- 좌측: 정렬 버튼 -->
+                    <div class="left-tools">
+                        <button id="sortBtn" class="sort-btn">↓ 최신순</button>
+                    </div>
+
+                    <!-- 우측: 선택 버튼 + 더보기 메뉴 -->
+                    <div class="right-tools">
+                        <!-- 버튼이 정렬되도록 flex 컨테이너로 감싸기 -->
+                        <div style="position: relative; display: flex; align-items: center;">
+                            <button id="headerMoreBtn" class="more-btn">⋮</button>
+                            <!-- 헤더용 더보기 팝업 -->
+                            <div id="headerMoreMenu" class="more-menu-popup" style="right:0; top:35px; width:140px;">
+                                <button id="selectMenuBtn" class="menu-item">선택하기</button>
+                                <button id="cleanBtn" class="menu-item danger">즐겨찾기 외 삭제</button>
+                                <button id="resetBtn" class="menu-item danger">전체 초기화</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1347,7 +1412,7 @@
     </div>
 
     <!-- [v1.0.0] 캐시 방지를 위해 버전 쿼리 추가 (업데이트 시 숫자 변경) -->
-    <script type="module" src="script.js?v=1.0.2"></script>
+    <script type="module" src="script.js?v=1.0.3"></script>
 
 </body>
 
