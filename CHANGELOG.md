@@ -2,10 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v1.0.1] - 2026-02-08
+## [v1.0.2] - 2026-02-08
 
 ### 개선 사항
 - 스크롤 영역을 카드 리스트만 스크롤 되도록 수정했습니다.
+- 주소 입력창의 높이를 줄였습니다.
 
 ## [v1.0.0] - 2026-02-08
 
