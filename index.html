@@ -27,15 +27,27 @@
             padding: 15px;
             display: flex;
             justify-content: center;
+            align-items: center;
+            /* [Fix] 수평 중앙 정렬 추가 */
             -webkit-tap-highlight-color: transparent;
+            /* [v1.28.0] 스크롤 고정 (화면 전체 스크롤 방지) */
+            height: 100vh;
+            overflow: hidden;
+            flex-direction: column;
         }
 
         .container {
             width: 100%;
             max-width: 600px;
-            padding-bottom: 80px;
-            display: block;
+            /* padding-bottom: 80px; 제거 -> 스크롤 영역으로 이동 */
+            /* display: block; -> flex로 변경 */
+            display: flex;
+            flex-direction: column;
             position: relative;
+            /* [v1.28.0] 스크롤 고정 (컨테이너 내부 스크롤) */
+            flex: 1;
+            overflow: hidden;
+            min-height: 0;
         }
 
         /* 상단 유저 정보 (구글 스타일 Refactoring) */
@@ -571,6 +583,11 @@
             flex-direction: column;
             gap: 15px;
             min-height: 200px;
+            /* [v1.28.0] 스크롤 영역 (카드 리스트만 스크롤) */
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 80px;
+            /* 하단 여백 확보 */
         }
 
         .card {
@@ -1312,7 +1329,7 @@
     </div>
 
     <!-- [v1.0.0] 캐시 방지를 위해 버전 쿼리 추가 (업데이트 시 숫자 변경) -->
-    <script type="module" src="script.js?v=1.0.0"></script>
+    <script type="module" src="script.js?v=1.0.1"></script>
 
 </body>
 
