@@ -4,7 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Link Pocket(v1.24.0)</title>
+
+    <!-- [v1.0.0] 캐시 방지 (항상 최신 버전 로딩) -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <title>Link Pocket(v1.0.0)</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#333333">
     <link rel="apple-touch-icon" href="icon.png">
@@ -32,67 +38,162 @@
             position: relative;
         }
 
-        /* 상단 유저 정보 */
+        /* 상단 유저 정보 (구글 스타일 Refactoring) */
         .user-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
+            /* 오른쪽 정렬 */
             align-items: center;
             margin-bottom: 5px;
             height: 40px;
+            padding: 0 5px;
         }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .user-photo {
+        .profile-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
             width: 35px;
             height: 35px;
             border-radius: 50%;
-            border: 1px solid #eee;
-            object-fit: cover;
-        }
-
-        .user-name {
-            font-weight: bold;
-            font-size: 14px;
-            color: #333;
-        }
-
-        .header-btn {
-            font-size: 11px;
-            cursor: pointer;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-weight: normal;
+            overflow: hidden;
             transition: 0.2s;
         }
 
-        .logout-btn {
-            color: #777;
-            background: #f1f3f5;
-            border: 1px solid #ddd;
-            display: none;
+        .profile-btn:hover {
+            opacity: 0.8;
+            box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05);
         }
 
-        .login-btn-small {
-            background-color: #4285f4;
-            color: white;
-            display: none;
+        .profile-btn img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
-        .guest-notice-box {
-            color: #adb5bd;
-            padding: 5px 0;
-            font-size: 12px;
+        /* 프로필 팝업 메뉴 */
+        .profile-popup {
+            position: absolute;
+            top: 45px;
+            right: 0;
+            width: 280px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            border: 1px solid #dadce0;
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: popIn 0.2s ease-out;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .profile-popup.show {
+            display: flex;
+        }
+
+        .popup-header {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-bottom: 1px solid #f1f3f5;
+            background: #f8f9fa;
+        }
+
+        .popup-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+            border: 1px solid #e1e1e1;
+        }
+
+        .popup-user-info {
             text-align: center;
-            margin-top: 15px;
-            margin-bottom: 15px;
-            display: none;
         }
+
+        .popup-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #202124;
+            display: block;
+        }
+
+        .popup-email {
+            font-size: 13px;
+            color: #5f6368;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .popup-body {
+            padding: 15px;
+            text-align: center;
+        }
+
+        .popup-message {
+            font-size: 13px;
+            color: #5f6368;
+            line-height: 1.5;
+        }
+
+        .popup-footer {
+            padding: 10px;
+            border-top: 1px solid #f1f3f5;
+            display: flex;
+            justify-content: center;
+        }
+
+        .popup-action-btn {
+            border: 1px solid #dadce0;
+            background: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #3c4043;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .popup-action-btn:hover {
+            background-color: #f7f8f8;
+            border-color: #bec2c6;
+        }
+
+        .popup-action-btn.login {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+        }
+
+        .popup-action-btn.login:hover {
+            background-color: #1557b0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .popup-action-btn.logout {
+            /* padding-left: 15px; */
+        }
+
+        /* .popup-action-btn.logout::before 제거됨 */
 
         /* 타이틀 바 */
         .title-bar {
@@ -106,12 +207,16 @@
         .menu-btn {
             position: absolute;
             left: 0;
+            top: 50%;
+            transform: translateY(-50%);
             background: none;
             border: none;
-            font-size: 24px;
+            font-size: 28px;
             cursor: pointer;
             color: #333;
             padding: 5px;
+            line-height: 1;
+            /* 높이와 폰트 크기 불일치 방지 */
         }
 
         h2 {
@@ -193,7 +298,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: 0.2s;
+            transition: transform 0.2s ease, background-color 0.2s;
             margin-bottom: 2px;
         }
 
@@ -243,28 +348,63 @@
         .sidebar-footer {
             padding: 15px;
             border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            /* 버튼 사이 간격 */
+            align-items: center;
+        }
+
+        .folder-order-btn {
+            flex: 1;
+            /* 1 비율 */
+            padding: 12px;
+            background: #f1f3f5;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+
+        .folder-order-btn:hover {
+            background: #e9ecef;
+            color: #212529;
+        }
+
+        .folder-order-btn.active {
+            background: #e7f5ff;
+            color: #1971c2;
         }
 
         .add-folder-btn {
-            width: 100%;
-            padding: 10px;
+            flex: 2;
+            /* 2 비율 */
+            padding: 12px;
             background: #333;
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: bold;
         }
 
         /* [v1.24.0] 드래그 앤 드롭 스타일 추가 */
         .folder-item[draggable="true"] {
-            cursor: grab; /* 잡을 수 있다는 손 모양 커서 */
-            border: 1px dashed #ccc; /* 이동 모드일 때 점선 테두리 */
+            cursor: grab;
+            /* 잡을 수 있다는 손 모양 커서 */
+            border: 1px dashed #ccc;
+            /* 이동 모드일 때 점선 테두리 */
         }
 
         .folder-item.dragging {
-            opacity: 0.5; /* 드래그 중인 녀석은 흐릿하게 */
+            opacity: 0.5;
+            /* 드래그 중인 녀석은 흐릿하게 */
             background-color: #e9ecef;
         }
 
@@ -273,7 +413,8 @@
             cursor: grab;
             color: #adb5bd;
             font-size: 18px;
-            display: none; /* 평소에는 숨김 */
+            display: none;
+            /* 평소에는 숨김 */
         }
 
         /* 순서 변경 모드일 때만 손잡이 보이기 */
@@ -293,7 +434,8 @@
             font-size: 12px;
             padding: 3px 8px;
             cursor: pointer;
-            margin-left: auto; /* 오른쪽 끝으로 밀기 */
+            margin-left: auto;
+            /* 오른쪽 끝으로 밀기 */
             margin-right: 10px;
         }
 
@@ -394,9 +536,15 @@
             margin-bottom: 15px;
             padding: 0 5px;
         }
-        
-        /* [v1.23.0] 왼쪽 버튼 그룹(정렬, 선택) */
+
+        /* [v1.23.0] 왼쪽 버튼 그룹(정렬) */
         .left-tools {
+            display: flex;
+            align-items: center;
+        }
+
+        /* [v1.25.0] 오른쪽 버튼 그룹(선택, 더보기) */
+        .right-tools {
             display: flex;
             align-items: center;
             gap: 5px;
@@ -412,24 +560,9 @@
             cursor: pointer;
             transition: 0.2s;
         }
-        
+
         .sort-btn:hover {
             background-color: #f8f9fa;
-        }
-
-        .danger-zone {
-            display: flex;
-            gap: 5px;
-        }
-
-        .danger-btn {
-            background: #fff0f0;
-            border: none;
-            color: #e03131;
-            font-size: 11px;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
         }
 
         /* 카드 스타일 */
@@ -807,6 +940,30 @@
             text-align: center;
         }
 
+        /* 프로필 팝업 메뉴 (Google Style Redesign) */
+        .profile-popup {
+            position: absolute;
+            top: 45px;
+            right: 0;
+            width: 300px;
+            /* 너비 약간 증가 */
+            background: #e9eef6;
+            /* 배경색 변경 (Light Gray/Blue) */
+            border-radius: 20px;
+            /* 둥근 모서리 증가 */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            /* border 제거 (배경색으로 구분) */
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: popIn 0.2s ease-out;
+            padding: 10px;
+            /* 내부 패딩 추가 */
+            gap: 10px;
+            /* 요소 간 간격 */
+        }
+
         .modal-input {
             width: 100%;
             padding: 10px;
@@ -922,6 +1079,81 @@
             background: #ff6b6b;
             color: white;
         }
+
+        .popup-header {
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* border-bottom 제거 */
+            border-bottom: none;
+            background: transparent;
+            /* 배경 투명 */
+        }
+
+        /* .popup-body 제거됨 */
+
+        .popup-footer {
+            padding: 0;
+            /* 패딩 제거 (내부 버튼이 처리) */
+            border-top: none;
+            /* 상단 테두리 제거 */
+            display: flex;
+            flex-direction: column;
+            /* 세로 정렬 */
+            background: white;
+            /* 흰색 배경 박스 */
+            border-radius: 20px;
+            /* 둥근 모서리 */
+            overflow: hidden;
+            /* 자식 요소 라운드 처리 */
+        }
+
+        .popup-action-btn {
+            border: none;
+            /* 테두리 제거 */
+            background: white;
+            padding: 15px 20px;
+            /* 패딩 증가 */
+            border-radius: 0;
+            /* 개별 라운드 제거 */
+            font-size: 14px;
+            font-weight: 500;
+            color: #3c4043;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            /* 아이콘과 텍스트 간격 */
+            width: 100%;
+            /* 가로 꽉 채우기 */
+            justify-content: flex-start;
+            /* 왼쪽 정렬 */
+        }
+
+        .popup-action-btn:hover {
+            background-color: #f1f3f4;
+            /* 호버 색상 변경 */
+        }
+
+        /* 구분선 (첫번째 버튼 하단) */
+        .popup-action-btn:not(:last-child) {
+            border-bottom: 1px solid #f1f3f5;
+        }
+
+        /* 로그인 버튼 스타일 (게스트 모드용) */
+        .popup-action-btn.login {
+            background-color: white;
+            color: #1a73e8;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .popup-action-btn.login:hover {
+            background-color: #f1f3f4;
+            box-shadow: none;
+        }
     </style>
 </head>
 
@@ -931,33 +1163,73 @@
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <span>내 폴더</span>
-            <button id="folderOrderBtn" class="sidebar-header-btn">⇅ 순서</button>
             <button id="closeSidebarBtn" class="sidebar-close">&times;</button>
         </div>
         <div id="sidebarList" class="folder-list"></div>
         <div class="sidebar-footer">
+            <button id="folderOrderBtn" class="folder-order-btn">순서</button>
             <button id="addNewFolderBtn" class="add-folder-btn">+ 새 폴더 만들기</button>
         </div>
     </div>
 
     <div id="app-container" class="container">
-        <div class="user-header">
-            <div class="user-info">
-                <img id="userPhoto"
-                    src="https://ssl.gstatic.com/images/branding/product/1x/avatar_circle_grey_512dp.png"
-                    class="user-photo">
-                <span id="userName" class="user-name">Guest</span>
-            </div>
-            <div id="guestNotice" class="guest-notice-box">
-                로그인하면 저장된 링크가 유지됩니다.
-            </div>
-            <button id="headerLoginBtn" class="header-btn login-btn-small">Log In</button>
-            <button id="logoutBtn" class="header-btn logout-btn">Log Out</button>
-        </div>
-
+        <!-- [v1.27.0] 타이틀 바 (프로필 버튼 통합) -->
+        <!-- [v1.27.0] 타이틀 바 (프로필 버튼 통합) -->
         <div class="title-bar">
             <button id="menuBtn" class="menu-btn">☰</button>
             <h2>Link Pocket</h2>
+
+            <!-- 프로필 버튼 영역 -->
+            <div class="header-profile-wrapper" style="position: absolute; right: 0;">
+                <button id="profileBtn" class="profile-btn">
+                    <img id="headerProfileImg"
+                        src="https://ssl.gstatic.com/images/branding/product/1x/avatar_circle_grey_512dp.png"
+                        alt="Profile">
+                </button>
+
+                <!-- 프로필 팝업 메뉴 -->
+                <div id="profilePopup" class="profile-popup">
+                    <div class="popup-header">
+                        <img id="popupProfileImg"
+                            src="https://ssl.gstatic.com/images/branding/product/1x/avatar_circle_grey_512dp.png"
+                            class="popup-avatar">
+                        <div class="popup-user-info">
+                            <span id="popupUserName" class="popup-name">Guest</span>
+                            <span id="popupUserEmail" class="popup-email">로그인이 필요합니다</span>
+                        </div>
+                    </div>
+                    <!-- popup-body 제거됨 -->
+
+                    <div class="popup-footer">
+                        <button id="popupLoginBtn" class="popup-action-btn login">
+                            로그인
+                        </button>
+
+                        <button id="popupAddAccountBtn" class="popup-action-btn" style="display:none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9.5" cy="7" r="4"></circle>
+                                <line x1="21" y1="8" x2="21" y2="14"></line>
+                                <line x1="24" y1="11" x2="18" y2="11"></line>
+                            </svg>
+                            다른 계정 추가
+                        </button>
+
+                        <button id="popupLogoutBtn" class="popup-action-btn" style="display:none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M10 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="17 17 22 12 17 7"></polyline>
+                                <line x1="22" y1="12" x2="10" y2="12"></line>
+                            </svg>
+                            모든 계정에서 로그아웃
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="tabs">
@@ -984,13 +1256,24 @@
         </div>
 
         <div class="tools-bar">
+            <!-- 좌측: 정렬 버튼 -->
             <div class="left-tools">
                 <button id="sortBtn" class="sort-btn">↓ 최신순</button>
-                <button id="selectModeBtn" class="sort-btn">✓ 선택</button>
             </div>
-            <div class="danger-zone">
-                <button id="cleanBtn" class="danger-btn">즐겨찾기 외 삭제</button>
-                <button id="resetBtn" class="danger-btn">전체 초기화</button>
+
+            <!-- 우측: 선택 버튼 + 더보기 메뉴 -->
+            <div class="right-tools">
+
+                <div style="position: relative;">
+                    <button id="headerMoreBtn" class="more-btn"
+                        style="position:static; width:30px; height:30px;">⋮</button>
+                    <!-- 헤더용 더보기 팝업 -->
+                    <div id="headerMoreMenu" class="more-menu-popup" style="right:0; top:35px; width:140px;">
+                        <button id="selectMenuBtn" class="menu-item">선택하기</button>
+                        <button id="cleanBtn" class="menu-item danger">즐겨찾기 외 삭제</button>
+                        <button id="resetBtn" class="menu-item danger">전체 초기화</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1028,7 +1311,8 @@
         </div>
     </div>
 
-    <script type="module" src="script.js"></script>
+    <!-- [v1.0.0] 캐시 방지를 위해 버전 쿼리 추가 (업데이트 시 숫자 변경) -->
+    <script type="module" src="script.js?v=1.0.0"></script>
 
 </body>
 

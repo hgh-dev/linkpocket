@@ -123,23 +123,35 @@ function initGuestFolders() {
 // ============================================================
 // 사용자가 들어오거나(로그인), 나갈 때(로그아웃) 자동으로 실행됩니다.
 onAuthStateChanged(auth, (user) => {
-    // HTML 요소들을 변수에 담습니다.
-    const loginBtn = document.getElementById('headerLoginBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const userPhoto = document.getElementById('userPhoto');
-    const userName = document.getElementById('userName');
-    const guestNotice = document.getElementById('guestNotice');
+    const headerProfileImg = document.getElementById('headerProfileImg');
+    const popupProfileImg = document.getElementById('popupProfileImg');
+    const popupUserName = document.getElementById('popupUserName');
+    const popupUserEmail = document.getElementById('popupUserEmail');
+    const popupLoginBtn = document.getElementById('popupLoginBtn');
+    const popupLogoutBtn = document.getElementById('popupLogoutBtn');
+    const popupAddAccountBtn = document.getElementById('popupAddAccountBtn');
+    const guestMessage = document.getElementById('guestMessage');
+
+    // [v1.27.1] 계정 전환 시 기존 리스너 제거 (중복 방지)
+    if (dbLinksRef) off(dbLinksRef);
+    if (dbFoldersRef) off(dbFoldersRef);
 
     if (user) {
         // [로그인 성공 상태]
         currentUser = user;
 
-        // UI 변경: 로그인 버튼 숨기고 로그아웃 버튼 보여주기
-        loginBtn.style.display = 'none';
-        logoutBtn.style.display = 'block';
-        guestNotice.style.display = 'none';
-        userName.innerText = user.displayName;
-        userPhoto.src = user.photoURL;
+        // 헤더 이미지 변경
+        if (headerProfileImg) headerProfileImg.src = user.photoURL || 'https://ssl.gstatic.com/images/branding/product/1x/avatar_circle_grey_512dp.png';
+
+        // 팝업 내부 정보 변경
+        if (popupProfileImg) popupProfileImg.src = user.photoURL || 'https://ssl.gstatic.com/images/branding/product/1x/avatar_circle_grey_512dp.png';
+        if (popupUserName) popupUserName.innerText = user.displayName || 'User';
+        if (popupUserEmail) popupUserEmail.innerText = user.email || '';
+
+        if (popupLoginBtn) popupLoginBtn.style.display = 'none';
+        if (popupAddAccountBtn) popupAddAccountBtn.style.display = 'flex';
+        if (popupLogoutBtn) popupLogoutBtn.style.display = 'flex';
+        if (guestMessage) guestMessage.style.display = 'none';
 
         // 데이터베이스 주소 설정 (users / 내 아이디 / links)
         dbLinksRef = ref(db, 'users/' + user.uid + '/links');
@@ -156,18 +168,22 @@ onAuthStateChanged(auth, (user) => {
 
     } else {
         // [로그아웃 / 게스트 상태]
-        // 기존 연결 끊기 (메모리 누수 방지)
         if (dbLinksRef) off(dbLinksRef);
         if (dbFoldersRef) off(dbFoldersRef);
 
         currentUser = null;
 
-        // UI 변경
-        loginBtn.style.display = 'block';
-        logoutBtn.style.display = 'none';
-        guestNotice.style.display = 'block';
-        userName.innerText = 'Guest';
-        userPhoto.src = 'https://ssl.gstatic.com/images/branding/product/1x/avatar_circle_grey_512dp.png';
+        // UI 초기화 (게스트 모드)
+        const defaultImg = 'https://ssl.gstatic.com/images/branding/product/1x/avatar_circle_grey_512dp.png';
+        if (headerProfileImg) headerProfileImg.src = defaultImg;
+        if (popupProfileImg) popupProfileImg.src = defaultImg;
+        if (popupUserName) popupUserName.innerText = 'Guest';
+        if (popupUserEmail) popupUserEmail.innerText = '로그인이 필요합니다';
+
+        if (popupLoginBtn) popupLoginBtn.style.display = 'flex';
+        if (popupAddAccountBtn) popupAddAccountBtn.style.display = 'none';
+        if (popupLogoutBtn) popupLogoutBtn.style.display = 'none';
+        if (guestMessage) guestMessage.style.display = 'block';
 
         // 로컬 저장소(내 컴퓨터)에서 데이터 가져오기
         const localData = localStorage.getItem(LOCAL_LINKS_KEY);
@@ -193,12 +209,19 @@ onAuthStateChanged(auth, (user) => {
 // HTML에 있는 버튼들을 눌렀을 때 무슨 함수를 실행할지 정해줍니다.
 
 // 상단 버튼들
-document.getElementById('headerLoginBtn').addEventListener('click', () => signInWithPopup(auth, provider));
-document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+// 상단 버튼들
+// document.getElementById('headerLoginBtn').addEventListener('click', () => signInWithPopup(auth, provider)); // [삭제됨]
+// document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth)); // [삭제됨]
+document.getElementById('profileBtn').addEventListener('click', toggleProfilePopup); // [v1.27.0] 프로필 메뉴 토글
+
 document.getElementById('addBtn').addEventListener('click', addLink);
 document.getElementById('sortBtn').addEventListener('click', toggleSort);
 document.getElementById('menuBtn').addEventListener('click', openSidebar);
-document.getElementById('selectModeBtn').addEventListener('click', toggleSelectMode);
+document.getElementById('selectMenuBtn').addEventListener('click', () => {
+    enterCheckMode();
+    closeAllMenus();
+});
+document.getElementById('headerMoreBtn').addEventListener('click', toggleHeaderMoreMenu); // [v1.25.0] 헤더 더보기 메뉴
 document.getElementById('folderOrderBtn').addEventListener('click', toggleFolderOrderMode); // [v1.24.0] 순서 변경 버튼
 
 // 위험 구역 버튼들
@@ -221,10 +244,41 @@ document.getElementById('closeSidebarBtn').addEventListener('click', closeSideba
 document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
 document.getElementById('addNewFolderBtn').addEventListener('click', addNewFolder);
 
+// [v1.27.0] 프로필 팝업 내부 버튼
+document.getElementById('popupLoginBtn').addEventListener('click', () => {
+    signInWithPopup(auth, provider);
+    closeProfilePopup();
+});
+
+// [v1.27.0] 다른 계정 추가 버튼
+document.getElementById('popupAddAccountBtn').addEventListener('click', () => {
+    provider.setCustomParameters({
+        prompt: 'select_account'
+    });
+    signInWithPopup(auth, provider)
+        .then((result) => {
+            console.log('Account switched:', result.user);
+            closeProfilePopup();
+        }).catch((error) => {
+            console.error('Account switch failed:', error);
+            alert('계정 전환에 실패했습니다.');
+        });
+});
+
+document.getElementById('popupLogoutBtn').addEventListener('click', () => {
+    signOut(auth);
+    closeProfilePopup();
+});
+
 // 화면 아무 데나 눌렀을 때 팝업 닫기
 window.addEventListener('click', (e) => {
+    // 더보기 메뉴 닫기
     if (!e.target.closest('.more-btn') && !e.target.closest('.more-menu-popup')) {
         closeAllMenus();
+    }
+    // 프로필 팝업 닫기
+    if (!e.target.closest('#profileBtn') && !e.target.closest('#profilePopup')) {
+        closeProfilePopup();
     }
 });
 
@@ -334,7 +388,7 @@ function addNewFolder() {
 // [v1.24.0] 순서 변경 모드 토글 (켜기/끄기)
 function toggleFolderOrderMode() {
     isFolderOrderMode = !isFolderOrderMode; // 상태 반전 (True <-> False)
-    
+
     const btn = document.getElementById('folderOrderBtn');
     const sidebar = document.getElementById('sidebar');
 
@@ -343,11 +397,11 @@ function toggleFolderOrderMode() {
         btn.classList.add('active');
         sidebar.classList.add('edit-mode'); // CSS 스타일 적용용 클래스
     } else {
-        btn.innerText = '⇅ 순서';
+        btn.innerText = '순서';
         btn.classList.remove('active');
         sidebar.classList.remove('edit-mode');
     }
-    
+
     renderSidebar(); // 화면 다시 그리기
 }
 
@@ -363,7 +417,7 @@ function renderSidebar() {
 
         const unclassifiedCount = Object.values(allLinksData).filter(l => !l.folderId).length;
         list.appendChild(createSidebarItem('unclassified', '미분류', unclassifiedCount, false));
-        
+
         // 구분선
         const hr = document.createElement('div');
         hr.style.borderBottom = '1px solid #eee';
@@ -374,11 +428,29 @@ function renderSidebar() {
     // 2. 내 폴더들 (순서대로 정렬)
     const sortedFolders = Object.entries(allFoldersData).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
 
+    // [v1.26.0] 라이브 소팅을 위한 컨테이너 이벤트 추가
+    if (isFolderOrderMode) {
+        list.ondragover = (e) => {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(list, e.clientY);
+            const draggable = document.querySelector('.dragging');
+            if (draggable) {
+                if (afterElement == null) {
+                    list.appendChild(draggable);
+                } else {
+                    list.insertBefore(draggable, afterElement);
+                }
+            }
+        };
+    } else {
+        list.ondragover = null; // 이벤트 제거
+    }
+
     sortedFolders.forEach(([key, folder]) => {
         const count = Object.values(allLinksData).filter(l => l.folderId === key).length;
         // isDraggable 인자를 true로 전달 (편집 모드일 때만)
         const item = createSidebarItem(key, folder.name, count, isFolderOrderMode);
-        
+
         // [편집 모드] 수정/삭제 버튼 추가
         if (isFolderOrderMode) {
             const btnGroup = document.createElement('div');
@@ -403,11 +475,27 @@ function renderSidebar() {
     });
 }
 
+// [v1.26.0] 드래그 위치에 따라 적절한 다음 요소를 찾는 헬퍼 함수
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.folder-item[draggable="true"]:not(.dragging)')];
+
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        // 마우스가 요소의 중간보다 위에 있으면서 가장 가까운 요소 찾기
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
 // [v1.24.0] 사이드바 아이템 생성 (드래그 이벤트 연결)
 function createSidebarItem(key, name, count, isDraggable) {
     const div = document.createElement('div');
     div.className = `folder-item ${currentFolderFilter === key ? 'active' : ''}`;
-    
+
     // 드래그 핸들(손잡이) 아이콘
     const handle = isDraggable ? '<span class="drag-handle">≡</span>' : '';
     div.innerHTML = `${handle}<span>${name} <span class="folder-count">${count}</span></span>`;
@@ -421,28 +509,14 @@ function createSidebarItem(key, name, count, isDraggable) {
         div.addEventListener('dragstart', (e) => {
             draggedItemKey = key;
             e.target.classList.add('dragging'); // 투명하게 만들기
-            // 모바일 등에서 텍스트가 선택되는 부작용 방지
-            e.dataTransfer.effectAllowed = 'move'; 
+            e.dataTransfer.effectAllowed = 'move';
         });
 
-        // 2. 드래그 끝 (놓았다!)
+        // 2. 드래그 끝 (놓았다!) - 여기서 최종 순서 저장
         div.addEventListener('dragend', (e) => {
             e.target.classList.remove('dragging'); // 원래대로 복구
             draggedItemKey = null;
-        });
-
-        // 3. 드래그 중인 물건이 나(다른 폴더) 위로 지나갈 때
-        div.addEventListener('dragover', (e) => {
-            e.preventDefault(); // 이거 안 하면 drop 이벤트가 발생 안 함 (필수!)
-        });
-
-        // 4. 드롭 (내려놨다!) - 순서 변경 실행
-        div.addEventListener('drop', (e) => {
-            e.preventDefault();
-            const targetKey = key; // 내가 놓은 곳(도착지)의 폴더 ID
-            if (draggedItemKey !== targetKey) {
-                reorderFolders(draggedItemKey, targetKey);
-            }
+            saveNewFolderOrder(); // [v1.26.0] 변경된 순서 저장
         });
 
     } else {
@@ -454,47 +528,36 @@ function createSidebarItem(key, name, count, isDraggable) {
             closeSidebar();
         };
     }
-    
+
     return div;
 }
 
-// [v1.24.0] 실제 데이터 순서 바꾸기 로직
-function reorderFolders(fromKey, toKey) {
-    // 1. 현재 순서대로 배열 만들기
-    let sortedList = Object.entries(allFoldersData).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
-    
-    // 2. 출발지와 도착지의 현재 위치(index) 찾기
-    const fromIndex = sortedList.findIndex(item => item[0] === fromKey);
-    const toIndex = sortedList.findIndex(item => item[0] === toKey);
-
-    if (fromIndex < 0 || toIndex < 0) return;
-
-    // 3. 배열에서 빼서 새로운 위치에 끼워넣기
-    const [movedItem] = sortedList.splice(fromIndex, 1); // 뽑아내기
-    sortedList.splice(toIndex, 0, movedItem); // 끼워넣기
-
-    // 4. 모든 폴더에 0, 1, 2... 순서표 다시 붙이기
+// [v1.26.0] 변경된 DOM 순서대로 데이터 저장
+function saveNewFolderOrder() {
+    const list = document.getElementById('sidebarList');
+    const items = list.querySelectorAll('.folder-item[draggable="true"]');
     const updates = {};
-    sortedList.forEach((item, index) => {
-        const key = item[0];
-        const data = item[1];
-        
-        data.order = index; // 내 메모리 업데이트
-        
-        // DB 저장용 데이터 준비
-        if (currentUser) {
-            updates[`users/${currentUser.uid}/folders/${key}/order`] = index;
-        } else {
+
+    items.forEach((item, index) => {
+        const key = item.dataset.key;
+        if (key && allFoldersData[key]) {
+            // 메모리 업데이트
             allFoldersData[key].order = index;
+
+            // DB 업데이트 준비
+            if (currentUser) {
+                updates[`users/${currentUser.uid}/folders/${key}/order`] = index;
+            }
         }
     });
 
-    // 5. 저장
+    // 실제 저장
     if (currentUser) {
-        update(ref(db), updates);
+        if (Object.keys(updates).length > 0) {
+            update(ref(db), updates);
+        }
     } else {
         localStorage.setItem(LOCAL_FOLDERS_KEY, JSON.stringify(allFoldersData));
-        renderSidebar(); // 로컬일 땐 수동으로 다시 그려줌
     }
 }
 
@@ -555,6 +618,17 @@ window.toggleFavorite = function (key) {
     }
 }
 
+// 헤더 더보기 메뉴 토글
+function toggleHeaderMoreMenu(e) {
+    if (e) e.stopPropagation();
+    const menu = document.getElementById('headerMoreMenu');
+    const isVisible = menu.classList.contains('show');
+    closeAllMenus(); // 다른 메뉴 닫기
+    if (!isVisible) {
+        menu.classList.add('show');
+    }
+}
+
 // 점 세개(...) 버튼 눌렀을 때 메뉴 열기
 window.toggleMoreMenu = function (key) {
     if (isCheckMode) return;
@@ -577,6 +651,13 @@ function closeAllMenus() {
     document.querySelectorAll('.more-menu-popup').forEach(el => el.classList.remove('show'));
     document.querySelectorAll('.card').forEach(el => el.classList.remove('z-active'));
     activeMenuKey = null;
+
+    // 헤더 메뉴도 닫기
+    const headerMenu = document.getElementById('headerMoreMenu');
+    if (headerMenu) headerMenu.classList.remove('show');
+
+    // 프로필 팝업도 닫기
+    closeProfilePopup();
 }
 
 window.copyLink = function (key) {
@@ -606,6 +687,27 @@ window.shareLink = function (key) {
         alert('이 브라우저는 공유 기능을 지원하지 않아 주소를 복사합니다.');
         window.copyLink(key);
     }
+}
+
+// [v1.27.0] 프로필 팝업 토글
+function toggleProfilePopup(e) {
+    if (e) e.stopPropagation();
+    const popup = document.getElementById('profilePopup');
+    const isVisible = popup.classList.contains('show');
+
+    // 다른 메뉴들 닫기
+    closeAllMenus();
+
+    if (!isVisible) {
+        popup.classList.add('show');
+    } else {
+        popup.classList.remove('show');
+    }
+}
+
+function closeProfilePopup() {
+    const popup = document.getElementById('profilePopup');
+    if (popup) popup.classList.remove('show');
 }
 
 // 폴더 이동 팝업 열기
@@ -687,6 +789,7 @@ function moveLinkToFolder(folderId) {
 }
 
 function deleteNonFavorites() {
+    closeAllMenus();
     if (!confirm('즐겨찾기(★)된 링크를 제외하고 모두 삭제합니다.')) return;
 
     if (currentUser) {
@@ -706,6 +809,7 @@ function deleteNonFavorites() {
 }
 
 function resetAll() {
+    closeAllMenus();
     if (!confirm('모든 링크를 삭제합니다.')) return;
     if (currentUser) {
         remove(dbLinksRef);
@@ -828,7 +932,7 @@ async function addLink() {
             const json = await response.json();
             const data = json.data;
             linkData.title = data.title || url;
-            linkData.image = data.image?.url || 'https://via.placeholder.com/120?text=No+Image';
+            linkData.image = data.image?.url || 'https://placehold.co/120?text=No+Image';
             linkData.desc = data.description || '';
             linkData.publisher = data.publisher || new URL(url).hostname;
         }
@@ -941,37 +1045,29 @@ function enterCheckMode(firstKey) {
     selectedKeys.clear();
     closeAllMenus();
     if (firstKey) selectedKeys.add(firstKey);
-    
+
     // 하단 선택 바 보여주기
     document.getElementById('selectionBar').classList.add('show');
 
     // 상단 버튼 모양 변경 (선택 -> 취소)
     const selBtn = document.getElementById('selectModeBtn');
-    if(selBtn) {
+    if (selBtn) {
         selBtn.innerText = '취소';
         selBtn.style.background = '#333';
         selBtn.style.color = 'white';
     }
-
     renderList();
 }
 
 function exitCheckMode() {
     isCheckMode = false;
     selectedKeys.clear();
-    
+    document.getElementById('app-container').classList.remove('check-mode');
+
     // 하단 선택 바 숨기기
     document.getElementById('selectionBar').classList.remove('show');
 
-    // 상단 버튼 모양 복구 (취소 -> 선택)
-    const selBtn = document.getElementById('selectModeBtn');
-    if(selBtn) {
-        selBtn.innerText = '✓ 선택';
-        selBtn.style.background = ''; // 원래 스타일로 복구
-        selBtn.style.color = '';
-    }
-
-    renderList();
+    renderList(); // 체크박스 사라지게 다시 그리기이벤트 핸들러
 }
 
 // 카드 클릭 이벤트 핸들러
@@ -1044,7 +1140,8 @@ function renderList() {
     }
 
     // 5. 카드 하나씩 만들기 (Loop)
-    links.forEach(link => {
+    // 5. 카드 하나씩 만들기 (Loop)
+    links.forEach((link, index) => {
         const card = document.createElement('div');
         const isSelected = selectedKeys.has(link.key);
         card.id = `card-${link.key}`;
@@ -1103,8 +1200,10 @@ function renderList() {
         const checkOverlay = `<div class="check-overlay"><div class="check-circle">✔</div></div>`;
         const linkHref = isCheckMode ? 'javascript:void(0)' : link.url;
 
+        // [v1.26.1] 이미지 로딩 최적화
+        const loadingAttr = index < 2 ? 'eager' : 'lazy';
         const imgContent = `<div class="img-link" tabindex="-1">
-                                <img src="${imageUrl}" class="card-img" onerror="this.src='https://via.placeholder.com/120?text=Link'">
+                                <img src="${imageUrl}" class="card-img" loading="${loadingAttr}" onerror="this.src='https://placehold.co/120?text=Link'">
                             </div>`;
 
         const starClass = link.isFavorite ? 'active' : '';
@@ -1126,7 +1225,7 @@ function renderList() {
                 </div>
                 <div class="card-info-area">
                     <div>
-                        <a href="${linkHref}" target="_blank" class="card-title">${link.title}</a>
+                        <a href="${linkHref}" target="_blank" rel="noopener noreferrer" class="card-title">${link.title}</a>
                         <p class="card-desc">${description}</p>
                     </div>
                     <div class="card-footer">
