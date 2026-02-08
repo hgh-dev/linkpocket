@@ -1,7 +1,3 @@
-/* [v1.24.0] Link Pocket 기능 스크립트
-  - 목표: 사이드바 폴더 순서 변경을 드래그 앤 드롭으로 개선
-*/
-
 // ============================================================
 // 1. 라이브러리 가져오기 (Import)
 // ============================================================
@@ -14,41 +10,42 @@ import { getDatabase, ref, push, onValue, remove, update, off, set }
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 // ============================================================
-// 2. 전역 변수 설정 (Variables)
+// 2. 전역 변수 설정 (Global Variables)
 // ============================================================
-// 앱 전체에서 계속 기억해야 할 값들을 미리 그릇에 담아둡니다.
+// 앱 전체에서 상태를 공유하기 위해 사용하는 변수들입니다.
 
-// [공유 기능] 다른 앱에서 공유하기로 넘어온 링크를 잠시 보관하는 변수
+// [데이터 공유] 다른 앱(유튜브 등)에서 '공유하기'로 넘어온 링크 정보
 let pendingSharedLink = null;
 
-// [사용자 정보] 현재 로그인한 사람 (없으면 null)
+// [인증 상태] 현재 로그인된 사용자 객체 (로그인 안 했으면 null)
 let currentUser = null;
 
-// [데이터베이스 주소] 내 데이터가 저장된 위치(폴더 경로 같은 개념)
-let dbLinksRef = null;   // 링크 저장소
-let dbFoldersRef = null; // 폴더 저장소
+// [DB 경로] Firebase Realtime Database의 특정 경로를 가리키는 참조(Reference)
+// 예: users/user123/links (링크 저장소), users/user123/folders (폴더 저장소)
+let dbLinksRef = null;
+let dbFoldersRef = null;
 
-// [필터 상태] 현재 화면에 보여줄 기준
-let currentFilter = 'all';        // 카테고리 (전체, 유튜브, 뉴스 등)
-let currentFolderFilter = 'all';  // 폴더 (전체, 특정폴더)
+// [필터 상태] 화면에 어떤 데이터를 보여줄지 결정하는 변수들
+let currentFilter = 'all';        // 카테고리 필터 (all, youtube, music ...)
+let currentFolderFilter = 'all';  // 사이드바 폴더 필터
 
-// [데이터 저장소] 서버나 로컬에서 가져온 데이터를 메모리에 쥐고 있는 곳
+// [데이터 캐시] DB 데이터를 메모리에 저장해두고 화면을 그릴 때 사용 (속도 향상)
 let allLinksData = {};
 let allFoldersData = {};
 
-// [화면 상태] 정렬, 체크모드 등
-let isAscending = false; // false면 최신순(내림차순)
-let isCheckMode = false; // 여러 개 선택 모드인지?
-let selectedKeys = new Set(); // 선택된 카드들의 ID 목록
-let pressTimer = null;   // 꾹 누르기 시간 측정용
-let editingKey = null;   // 현재 수정 중인 링크의 ID
-let activeMenuKey = null;// 현재 메뉴가 열려있는 카드의 ID
+// [UI 상태] 화면의 모드나 상태를 제어하는 플래그들
+let isAscending = false;      // 정렬 순서 (true: 오래된순, false: 최신순)
+let isCheckMode = false;      // 다중 선택 모드 여부
+let selectedKeys = new Set(); // 선택된 카드의 ID 집합 (중복 방지 Set 사용)
+let pressTimer = null;        // 롱프레스(꾹 누르기) 감지 타이머
+let editingKey = null;        // 현재 수정 중인 링크의 Key
+let activeMenuKey = null;     // 현재 메뉴가 열린 카드의 Key
 
-// [v1.24.0] 폴더 순서 변경 모드용 변수
-let isFolderOrderMode = false;
-let draggedItemKey = null; // 드래그 중인 폴더의 ID
+// [폴더 관리] 폴더 순서 변경 기능 관련 상태
+let isFolderOrderMode = false; // 폴더 순서 편집 모드 여부
+let draggedItemKey = null;     // 드래그 중인 폴더의 Key
 
-// [로컬 저장소 키] 게스트 모드일 때 브라우저에 저장할 이름
+// [로컬 저장소 키] 로그인하지 않은 게스트 유저의 데이터를 브라우저에 저장할 키 이름
 const LOCAL_LINKS_KEY = 'linkpocket_guest_data';
 const LOCAL_FOLDERS_KEY = 'linkpocket_guest_folders';
 
@@ -121,8 +118,10 @@ function initGuestFolders() {
 // ============================================================
 // 5. 로그인 상태 감지 (Auth Listener)
 // ============================================================
-// 사용자가 들어오거나(로그인), 나갈 때(로그아웃) 자동으로 실행됩니다.
+// Firebase Auth가 로그인 상태 변경을 감지하면 이 함수를 실행합니다.
+// 로그인 직후 -> 사용자 데이터 로드 / 로그아웃 직후 -> 게스트 모드 전환
 onAuthStateChanged(auth, (user) => {
+    // UI 요소 가져오기
     const headerProfileImg = document.getElementById('headerProfileImg');
     const popupProfileImg = document.getElementById('popupProfileImg');
     const popupUserName = document.getElementById('popupUserName');
@@ -132,12 +131,14 @@ onAuthStateChanged(auth, (user) => {
     const popupAddAccountBtn = document.getElementById('popupAddAccountBtn');
     const guestMessage = document.getElementById('guestMessage');
 
-    // [v1.27.1] 계정 전환 시 기존 리스너 제거 (중복 방지)
+    // [Clean up] 이전 계정의 데이터 리스너가 남아있다면 제거 (메모리 누수 방지)
     if (dbLinksRef) off(dbLinksRef);
     if (dbFoldersRef) off(dbFoldersRef);
 
     if (user) {
-        // [로그인 성공 상태]
+        // --------------------------------------------------------
+        // [Case 1] 로그인 성공
+        // --------------------------------------------------------
         currentUser = user;
 
         // 헤더 이미지 변경
@@ -206,13 +207,10 @@ onAuthStateChanged(auth, (user) => {
 // ============================================================
 // 6. 버튼 이벤트 연결 (Event Listeners)
 // ============================================================
-// HTML에 있는 버튼들을 눌렀을 때 무슨 함수를 실행할지 정해줍니다.
+// 사용자의 클릭 이벤트를 각 기능 함수와 연결합니다.
 
-// 상단 버튼들
-// 상단 버튼들
-// document.getElementById('headerLoginBtn').addEventListener('click', () => signInWithPopup(auth, provider)); // [삭제됨]
-// document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth)); // [삭제됨]
-document.getElementById('profileBtn').addEventListener('click', toggleProfilePopup); // [v1.27.0] 프로필 메뉴 토글
+// [Header] 상단 메인 버튼
+document.getElementById('profileBtn').addEventListener('click', toggleProfilePopup); // 프로필/로그인 팝업
 
 document.getElementById('addBtn').addEventListener('click', addLink);
 document.getElementById('sortBtn').addEventListener('click', toggleSort);
@@ -232,6 +230,9 @@ document.getElementById('resetBtn').addEventListener('click', resetAll);
 document.getElementById('cancelSelBtn').addEventListener('click', exitCheckMode);
 document.getElementById('moveSelBtn').addEventListener('click', () => openFolderModal());
 document.getElementById('deleteSelBtn').addEventListener('click', deleteSelectedItems);
+
+// [v1.29.0] 읽은 링크 삭제 버튼
+document.getElementById('deleteReadBtn').addEventListener('click', deleteReadLinks);
 
 // 검색창 입력 감지
 document.getElementById('searchInput').addEventListener('keyup', () => renderList());
@@ -291,31 +292,32 @@ document.getElementById('tab-search').addEventListener('click', () => filterList
 
 
 // ============================================================
-// 7. 데이터 관리 함수 (Data Logic)
+// 7. 실시간 데이터 동기화 (Realtime Data Sync)
 // ============================================================
 
-// [실시간 데이터 수신] 서버 DB가 바뀌면 내 화면도 즉시 바뀝니다.
+// [핵심 기능] Firebase DB의 변경사항을 실시간으로 구독(Listening)합니다.
+// 데이터가 추가/수정/삭제되면 즉시 이 함수가 호출되어 화면을 갱신합니다.
 function startListeningData() {
-    // 링크 데이터 감시
+    // 1. 링크 데이터 감시 (users/{uid}/links)
     onValue(dbLinksRef, (snapshot) => {
-        allLinksData = snapshot.val() || {};
-        renderList();
-        renderSidebar();
+        allLinksData = snapshot.val() || {}; // 데이터가 없으면 빈 객체
+        renderList();    // 목록 다시 그리기
+        renderSidebar(); // 사이드바 숫자 갱신
     });
 
-    // 폴더 데이터 감시
+    // 2. 폴더 데이터 감시 (users/{uid}/folders)
     onValue(dbFoldersRef, (snapshot) => {
         const val = snapshot.val();
         if (!val) {
-            // 폴더가 하나도 없으면 기본 폴더 생성
+            // 폴더 데이터가 아예 없으면 기본샘플 폴더 생성
             const defaultFolders = {
                 'folder_1': { name: '폴더1', timestamp: Date.now(), order: 0 },
                 'folder_2': { name: '폴더2', timestamp: Date.now() + 1, order: 1 }
             };
-            update(dbFoldersRef, defaultFolders);
+            update(dbFoldersRef, defaultFolders); // DB에 쓰기
         } else {
             allFoldersData = val;
-            ensureFolderOrders();
+            ensureFolderOrders(); // 순서 데이터 무결성 검사
             renderSidebar();
             renderList();
         }
@@ -604,15 +606,24 @@ function toggleSort() {
     renderList();
 }
 
+// [v1.29.1] 즐겨찾기 토글 (즐겨찾기 시 읽음 상태 해제)
 window.toggleFavorite = function (key) {
     if (isCheckMode) return;
     const currentStatus = allLinksData[key].isFavorite || false;
+    const newStatus = !currentStatus; // 반전된 상태
 
     // 토글(Toggle): 켜져있으면 끄고, 꺼져있으면 켬
     if (currentUser) {
-        update(ref(db, `users/${currentUser.uid}/links/${key}`), { isFavorite: !currentStatus });
+        const updates = { isFavorite: newStatus };
+        // 즐겨찾기로 설정될 때(newStatus === true), 읽음 상태를 강제로 해제
+        if (newStatus) updates.isRead = false;
+
+        update(ref(db, `users/${currentUser.uid}/links/${key}`), updates);
     } else {
-        allLinksData[key].isFavorite = !currentStatus;
+        allLinksData[key].isFavorite = newStatus;
+        // 즐겨찾기로 설정될 때, 읽음 상태 해제
+        if (newStatus) allLinksData[key].isRead = false;
+
         saveToLocal(allLinksData);
         renderList();
     }
@@ -838,8 +849,9 @@ function deleteSelectedItems() {
 // ============================================================
 // 10. 유틸리티 함수 (Utility Functions)
 // ============================================================
-// 날짜 변환, URL 분석 등 도와주는 작은 함수들입니다.
+// 날짜 변환, URL 분석 등 여러 곳에서 쓰이는 도구 함수들입니다.
 
+// 타임스탬프(숫자)를 'YYYY.MM.DD HH:mm' 형식의 문자열로 변환
 function formatDate(timestamp) {
     if (!timestamp) return '';
     const d = new Date(timestamp);
@@ -857,16 +869,21 @@ function getYoutubeId(url) {
     return (match && match[2].length === 11) ? match[2] : null;
 }
 
+// URL을 분석해서 적절한 카테고리(뉴스, 쇼핑, SNS 등)를 자동으로 찾아줍니다.
 function detectCategory(url) {
     const lower = url.toLowerCase();
 
-    // 특정 단어가 포함되어 있는지 확인해서 카테고리 결정
+    // 1. 음악 사이트 우선 감지
     if (lower.includes('music.youtube.com')) return 'music';
+
+    // 2. 유튜브 영상 감지
     if (getYoutubeId(url)) return 'youtube';
 
+    // 3. 뉴스 사이트 키워드 매칭
     const newsKeywords = ['news', 'ytn', 'jtbc', 'kbs', 'sbs', 'mbc', 'chosun', 'joongang', 'donga', 'hani', 'khan', 'kmib', 'yonhap', 'maekyung', 'hankyung', 'segye', 'munhwa', 'cnn', 'bbc', 'reuters', 'pressian', 'nocut', 'imnews'];
     if (newsKeywords.some(keyword => lower.includes(keyword))) return 'news';
 
+    // 4. 기타 카테고리 매칭
     if (lower.includes('music') || lower.includes('melon') || lower.includes('spotify')) return 'music';
     if (lower.includes('instagram') || lower.includes('facebook') || lower.includes('twitter') || lower.includes('tiktok') || lower.includes('x.com')) return 'sns';
     if (lower.includes('coupang') || lower.includes('gmarket') || lower.includes('aliexpress') || lower.includes('11st') || lower.includes('auction') || lower.includes('ssg') || lower.includes('smartstore') || lower.includes('kurly') || lower.includes('musinsa')) return 'shopping';
@@ -881,7 +898,7 @@ function saveToLocal(data) {
 
 
 // ============================================================
-// 11. 핵심 기능: 링크 추가 및 수정 (Core Features)
+// 11. 핵심 기능: 링크 추가 및 메타데이터 추출
 // ============================================================
 
 async function addLink() {
@@ -890,9 +907,10 @@ async function addLink() {
     let url = input.value.trim();
 
     if (!url) return alert('주소를 입력해주세요!');
-    // http가 없으면 붙여주기
+    // http 프로토콜이 생략된 경우 자동으로 붙여줌
     if (!url.startsWith('http')) url = 'https://' + url;
 
+    // 중복 클릭 방지 UI 처리
     btn.disabled = true;
     btn.innerText = '가져오는 중...';
 
@@ -1081,6 +1099,69 @@ window.handleCardClick = function (e, key, url) {
         return;
     }
     // 평소엔 <a> 태그 덕분에 자동으로 새 창이 열림
+    // [v1.29.0] 클릭 시 읽음 처리
+    markAsRead(key);
+}
+
+// [v1.29.0] 링크 읽음 처리
+window.markAsRead = function (key) {
+    // [v1.29.1] 즐겨찾기된 링크는 읽음 처리를 하지 않음 (보호)
+    if (allLinksData[key].isFavorite) return;
+
+    if (allLinksData[key].isRead) return; // 이미 읽었으면 패스
+
+    if (currentUser) {
+        update(ref(db, `users/${currentUser.uid}/links/${key}`), { isRead: true });
+    } else {
+        allLinksData[key].isRead = true;
+        saveToLocal(allLinksData);
+        renderList();
+    }
+}
+
+// [v1.29.0] 읽음/안읽음 상태 수동 토글
+window.toggleReadStatus = function (key) {
+    closeAllMenus();
+
+    // [v1.29.1] 즐겨찾기된 링크는 수동으로 읽음 처리 불가 (경고창)
+    // 단, 이미 읽음 상태인 것을 '안읽음'으로 되돌리는 것은 허용 (혹시 모를 예외 상황 대비) -> 요구사항은 "읽음 표시를 할 수 없습니다" 이므로, isRead가 false인 상태에서 true로 바꾸려 할 때 막아야 함.
+    const currentStatus = allLinksData[key].isRead || false;
+
+    // 안읽음(false) -> 읽음(true) 시도 시, 즐겨찾기 상태라면 차단
+    if (!currentStatus && allLinksData[key].isFavorite) {
+        alert('즐겨찾기된 링크는 읽음 표시를 할 수 없습니다.');
+        return;
+    }
+
+    if (currentUser) {
+        update(ref(db, `users/${currentUser.uid}/links/${key}`), { isRead: !currentStatus });
+    } else {
+        allLinksData[key].isRead = !currentStatus;
+        saveToLocal(allLinksData);
+        renderList();
+    }
+}
+
+// [v1.29.0] 읽은 링크 일괄 삭제
+function deleteReadLinks() {
+    closeAllMenus();
+    // 읽은 링크 개수 파악
+    const readKeys = Object.keys(allLinksData).filter(key => allLinksData[key].isRead);
+    const count = readKeys.length;
+
+    if (count === 0) return alert('읽은 링크가 없습니다.');
+    if (!confirm(`읽음 처리된 ${count}개의 링크를 삭제하시겠습니까?`)) return;
+
+    if (currentUser) {
+        const updates = {};
+        readKeys.forEach(key => updates[`users/${currentUser.uid}/links/${key}`] = null);
+        update(ref(db), updates);
+    } else {
+        readKeys.forEach(key => delete allLinksData[key]);
+        saveToLocal(allLinksData);
+        renderList();
+        renderSidebar();
+    }
 }
 
 // 꾹 누르기(Long Press) 감지
@@ -1100,12 +1181,21 @@ window.cancelLongPress = function () {
 }
 
 // [최종 화면 그리기] 데이터 목록을 순회하며 HTML을 만듭니다.
+// ============================================================
+// 12. 화면 필터 및 렌더링 (Filtering & Rendering)
+// ============================================================
+
+// [화면 그리기 핵심 함수]
+// 현재 데이터(allLinksData)를 필터링/정렬하고, HTML 태그를 만들어 화면에 표시합니다.
+// 데이터가 조금이라도 바뀌면 이 함수가 처음부터 다시 그려서 최신 상태를 유지합니다.
 function renderList() {
     const list = document.getElementById('cardList');
-    list.innerHTML = '';
+    list.innerHTML = ''; // 기존 내용 싹 비우기 (초기화)
 
-    // 1. 데이터를 배열로 바꾸고 정렬
+    // 1. 객체 형태의 데이터를 배열로 변환 (정렬을 위해)
     let links = Object.entries(allLinksData).map(([k, v]) => ({ key: k, ...v }));
+
+    // 2. 정렬 (오름차순/내림차순)
     links.sort((a, b) => isAscending ? a.timestamp - b.timestamp : b.timestamp - a.timestamp);
 
     // 2. 폴더 필터링
@@ -1144,8 +1234,10 @@ function renderList() {
     links.forEach((link, index) => {
         const card = document.createElement('div');
         const isSelected = selectedKeys.has(link.key);
+        // [v1.29.0] 읽음 상태 클래스 추가
+        const isReadClass = link.isRead ? 'is-read' : '';
         card.id = `card-${link.key}`;
-        card.className = `card ${isCheckMode ? 'checking' : ''} ${isSelected ? 'selected' : ''}`;
+        card.className = `card ${isCheckMode ? 'checking' : ''} ${isSelected ? 'selected' : ''} ${isReadClass}`;
         card.onclick = (e) => handleCardClick(e, link.key, link.url);
 
         // 카테고리 변경 셀렉트 박스
@@ -1167,6 +1259,9 @@ function renderList() {
                 <button class="menu-item" onclick="event.stopPropagation(); shareLink('${link.key}')">공유</button>
                 <button class="menu-item" onclick="event.stopPropagation(); copyLink('${link.key}')">링크 복사</button>
                 <div class="menu-separator"></div>
+                <button class="menu-item" onclick="event.stopPropagation(); toggleReadStatus('${link.key}')">
+                    ${link.isRead ? '읽음 표시 해제' : '읽음 표시'}
+                </button>
                 <button class="menu-item" onclick="event.stopPropagation(); openEditModal('${link.key}')">내용 수정</button>
                 <button class="menu-item" onclick="event.stopPropagation(); openFolderModal('${link.key}')">폴더 이동</button>
                 <button class="menu-item danger" onclick="event.stopPropagation(); deleteLink('${link.key}')">삭제</button>

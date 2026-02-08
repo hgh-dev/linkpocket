@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0] - 2026-02-09
+
+### 추가 사항
+- **읽음 표시 기능 추가**: 링크를 열거나 수동으로 읽음 표시 버튼을 눌렀을 때, 해당 링크 카드에 그레이 필터와 투명도가 적용됩니다.
+
 ## [v1.0.3] - 2026-02-08
 
 ### 개선 사항

@@ -20,6 +20,9 @@
             box-sizing: border-box;
         }
 
+        /* ==========================================================================
+           1. 기본 레이아웃 (Layout)
+           ========================================================================== */
         body {
             font-family: 'Apple SD Gothic Neo', sans-serif;
             background-color: #ffffff;
@@ -28,40 +31,30 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* [Fix] 가로 중앙 정렬 복구 */
             min-height: 100vh;
-            /* height 대신 min-height */
             -webkit-tap-highlight-color: transparent;
-            /* flex-direction: column; 제거 혹은 유지? 보통 body는 block이나 flex column */
             flex-direction: column;
         }
 
+        /* 메인 컨테이너: 모바일 앱처럼 너비 제한 (최대 600px) */
         .container {
             width: 100%;
             max-width: 600px;
             display: flex;
             flex-direction: column;
             position: relative;
-            /* flex: 1; overflow: hidden; 제거 */
             min-height: 100vh;
-            /* 전체 높이 확보 */
             padding: 10px;
-            /* [User Request] 추가 패딩 */
         }
 
+        /* 상단 고정 헤더 */
         .sticky-header {
             position: sticky;
             top: 0;
             z-index: 1000;
             background-color: transparent;
-            /* [Two-Tone] 투명 배경 */
-            /* backdrop-filter 제거 (개별 영역 적용) */
-            /* -webkit-backdrop-filter 제거 */
-            /* border-bottom 제거됨 */
             padding: 0;
-            /* [Two-Tone] 패딩 제거 */
             margin-top: -5px;
-            /* body padding 보정 */
             display: flex;
             flex-direction: column;
         }
@@ -223,31 +216,24 @@
 
         /* .popup-action-btn.logout::before 제거됨 */
 
+        /* 상단 타이틀 바 */
         .title-bar {
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
             background-color: #ffffff;
-            /* [Two-Tone] 상단 흰색 배경 */
             padding: 10px 15px;
-            /* [Two-Tone] 여백 추가 */
             margin: 0;
-            /* [Two-Tone] 마진 제거 */
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            /* [Two-Tone] 구분감 */
             z-index: 2;
         }
 
-        /* [Two-Tone] 하단 컨트롤 영역 스타일 */
+        /* 하단 컨트롤 영역 (필터, 입력창 등) */
         .controls-area {
-            background-color: rgb(255, 255, 255, 0);
-            /* [Two-Tone] 하단 회색 배경 */
+            background-color: rgba(255, 255, 255, 0);
             padding: 5px 0px 5px 0px;
-            /* [Two-Tone] 여백 정리 */
+            -webkit-backdrop-filter: blur(0px);
             backdrop-filter: blur(0px);
-            /* [Design] 블러 효과 (선택) */
-            -webkit-backdrop-filter: blur(10px);
             border-bottom: 0px solid rgba(0, 0, 0, 0.05);
             z-index: 1;
         }
@@ -614,6 +600,7 @@
         }
 
         /* [v1.28.0] 더보기 버튼 개별 스타일 (흰색 원형) */
+        /* 더보기 버튼 스타일 */
         #headerMoreBtn {
             background-color: #ffffff;
             border: 1px solid #eee;
@@ -622,26 +609,16 @@
             width: 32px;
             height: 32px;
             display: flex;
-            /* flex로 유지하되 부모 요소 확인 필요 */
             align-items: center;
             justify-content: center;
             cursor: pointer;
             position: relative;
-            /* 위치 보정 */
-            top: auto;
-            /* [Bugfix] .more-btn의 top 속성 초기화 */
-            right: auto;
-            /* [Bugfix] .more-btn의 right 속성 초기화 */
             margin: 0;
-            /* [Bugfix] 여백 초기화 */
             margin-left: 5px;
-            /* 간격 확보 */
             flex-shrink: 0;
-            /* 줄어들지 않도록 설정 */
             color: #adb5bd;
-            /* 기존 아이콘 색상 유지 */
             font-size: 20px;
-            /* 기존 폰트 크기 유지 */
+            transition: 0.2s;
         }
 
         #headerMoreBtn:hover {
@@ -696,6 +673,19 @@
         .card.checking.selected {
             border: 2px solid #fa5252;
             background-color: #fff5f5;
+        }
+
+        /* [v1.29.0] 읽음 상태 스타일 */
+        /* [v1.29.2] 팝업 가시성을 위해 카드 전체 투명도 제거 */
+        .card.is-read .card-layout,
+        .card.is-read .card-folder-tag,
+        .card.is-read .star-btn-circle,
+        .card.is-read .category-select {
+            opacity: 0.5;
+        }
+
+        .card.is-read .card-img {
+            filter: grayscale(100%);
         }
 
         /* 카테고리 태그 (좌측 상단) */
@@ -1180,13 +1170,9 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            /* border-bottom 제거 */
             border-bottom: none;
             background: transparent;
-            /* 배경 투명 */
         }
-
-        /* .popup-body 제거됨 */
 
         .popup-footer {
             padding: 0;
@@ -1364,10 +1350,12 @@
                     <div class="right-tools">
                         <!-- 버튼이 정렬되도록 flex 컨테이너로 감싸기 -->
                         <div style="position: relative; display: flex; align-items: center;">
-                            <button id="headerMoreBtn" class="more-btn">⋮</button>
+                            <button id="headerMoreBtn">⋮</button>
                             <!-- 헤더용 더보기 팝업 -->
                             <div id="headerMoreMenu" class="more-menu-popup" style="right:0; top:35px; width:140px;">
                                 <button id="selectMenuBtn" class="menu-item">선택하기</button>
+                                <button id="deleteReadBtn" class="menu-item">읽은 링크 삭제</button>
+                                <div class="menu-separator"></div>
                                 <button id="cleanBtn" class="menu-item danger">즐겨찾기 외 삭제</button>
                                 <button id="resetBtn" class="menu-item danger">전체 초기화</button>
                             </div>
@@ -1411,8 +1399,12 @@
         </div>
     </div>
 
-    <!-- [v1.0.0] 캐시 방지를 위해 버전 쿼리 추가 (업데이트 시 숫자 변경) -->
-    <script type="module" src="script.js?v=1.0.3"></script>
+    <!-- ============================================================
+         스크립트 로드 (Script Loading)
+         - type="module": ES6 모듈 기능 사용 (import/export)
+         - ?v=...: 브라우저 캐시 방지용 버전 태그
+         ============================================================ -->
+    <script type="module" src="script.js?v=1.1.0"></script>
 
 </body>
 
